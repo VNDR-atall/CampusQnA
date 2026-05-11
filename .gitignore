@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+
+# venv
+.cps_rag_venv/
+
+# macOS
+.DS_Store
+
+# ChromaDB
+chroma_db/
+
+# env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# logs
+logs/
+
+# model cache
+hf_cache/
