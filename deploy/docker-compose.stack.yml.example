@@ -1,0 +1,55 @@
+# ECS 全栈示例（2 vCPU / 2 GiB RAM）
+# 用法：复制到服务器如 /opt/vndr-stack/docker-compose.yml，与 Nginx 宿主机配置配合。
+# CampusQnA 源码目录与 myblog 目录分别 clone；本文件仅编排容器。
+
+version: '3.8'
+
+services:
+  campus-qna:
+    build: /opt/CampusQnA
+    container_name: campus-qna
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - TZ=Asia/Shanghai
+      - ROOT_PATH=/campus-qna
+    volumes:
+      - /opt/CampusQnA/chroma_db:/app/chroma_db
+      - /opt/CampusQnA/data:/app/data
+      - /opt/CampusQnA/.env:/app/.env:ro
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1200M
+
+  myblog:
+    build: /opt/myblog
+    container_name: vndr-blog
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+    volumes:
+      - vndr_blog_posts:/app/content/posts
+      - vndr_blog_images:/app/app/static/images
+      - vndr_blog_db:/app/instance
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+volumes:
+  vndr_blog_posts:
+    name: vndr_blog_posts
+  vndr_blog_images:
+    name: vndr_blog_images
+  vndr_blog_db:
+    name: vndr_blog_db
+
+# Nginx 建议用宿主机 apt 安装（deploy/nginx-vndr-atall.conf.example），
+# 或另起 nginx:alpine 容器并映射 80/443，内存 limit ~64M。

@@ -1,0 +1,58 @@
+# 示例：/etc/nginx/sites-available/vndr-atall
+# 方案 A：同域 Nginx 反代；CampusQnA 仅监听 127.0.0.1:8000，myblog 127.0.0.1:5000
+#
+# 证书：Let's Encrypt 通常签发给整站域名，子路径 /campus-qna/ 无需单独证书。
+
+upstream campus_qna {
+    server 127.0.0.1:8000;
+    keepalive 8;
+}
+
+upstream myblog {
+    server 127.0.0.1:5000;
+    keepalive 8;
+}
+
+server {
+    listen 80;
+    server_name vndr-atall.com www.vndr-atall.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name vndr-atall.com www.vndr-atall.com;
+
+    # SSL（certbot 生成后取消注释并填写实际路径）
+    # ssl_certificate     /etc/letsencrypt/live/vndr-atall.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/vndr-atall.com/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 20M;
+
+    # 校园问答（RAG 可能较慢，拉长超时）
+    location /campus-qna/ {
+        proxy_pass http://campus_qna/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /campus-qna;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 300s;
+    }
+
+    # 博客根路径
+    location / {
+        proxy_pass http://myblog;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 120s;
+    }
+}

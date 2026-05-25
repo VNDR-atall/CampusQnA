@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  campus-qna:
+    build: .
+    container_name: campus-qna
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - TZ=Asia/Shanghai
+      - ROOT_PATH=/campus-qna
+    volumes:
+      - ./chroma_db:/app/chroma_db
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1200M
+        reservations:
+          memory: 512M

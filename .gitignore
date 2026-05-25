@@ -8,8 +8,12 @@ __pycache__/
 # macOS
 .DS_Store
 
-# ChromaDB
+# ChromaDB / 文档数据（服务器卷同步，不进 Git）
 chroma_db/
+data/
+
+# 本地 myblog 分析克隆
+.myblog-explore/
 
 # env
 .env
