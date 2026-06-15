@@ -1,3 +1,6 @@
+import os
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
 from typing import List
 from sentence_transformers import SentenceTransformer
 import numpy as np

@@ -27,3 +27,6 @@ logs/
 
 # model cache
 hf_cache/
+
+# for Claude to read
+CLAUDE.md

@@ -62,7 +62,7 @@ git add .
 git commit -m "完成xxx功能"
 
 # 5. 推送自己的分支
-git push -u origin my-feature    # 第一次推送
+git push -u origin main    # 第一次推送
 git push                         # 后续推送
 ```
 

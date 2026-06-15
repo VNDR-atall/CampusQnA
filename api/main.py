@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Generator
 import os
 import sys
 
@@ -120,6 +120,33 @@ async def query(request: QueryRequest):
     except Exception as e:
         print(f"问答失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"处理请求失败: {str(e)}")
+
+@app.post("/api/query/stream")
+async def query_stream(request: QueryRequest):
+    """问答接口（流式响应）"""
+    global rag_system
+    
+    if not rag_system:
+        raise HTTPException(status_code=500, detail="RAG 系统未初始化")
+    
+    async def generate():
+        try:
+            context_chunks = rag_system.retrieve(request.question)
+            
+            if not context_chunks or all(chunk.get("distance", 1.0) > 0.8 for chunk in context_chunks):
+                yield f"data: {{'type': 'answer', 'content': '暂无资料，无法回答'}}\n\n"
+                yield "data: {\"type\": \"end\"}\n\n"
+                return
+            
+            for chunk in rag_system.generate_stream(request.question, context_chunks):
+                yield f"data: {{\"type\": \"answer\", \"content\": {chunk!r}}}\n\n"
+            
+            yield "data: {\"type\": \"end\"}\n\n"
+        except Exception as e:
+            print(f"流式问答失败: {str(e)}")
+            yield f"data: {{\"type\": \"error\", \"content\": {str(e)!r}}}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 @app.get("/api/stats")
 async def get_stats():

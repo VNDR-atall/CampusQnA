@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <div class="chat-wrapper">
-      <!-- 头部 -->
       <div class="header">
         <div class="logo">
           <span class="logo-icon">🎓</span>
@@ -10,7 +9,6 @@
         <p class="subtitle">基于 RAG 的智能问答系统</p>
       </div>
 
-      <!-- 聊天区域 -->
       <div class="chat-container" ref="chatContainer">
         <div v-if="messages.length === 0" class="welcome">
           <div class="welcome-icon">🤖</div>
@@ -47,7 +45,6 @@
         </div>
       </div>
 
-      <!-- 输入区域 -->
       <div class="input-area">
         <div class="input-wrapper">
           <input
@@ -60,16 +57,17 @@
             发送
           </button>
         </div>
+        <div v-if="lastResponseTime" class="response-time">
+          响应时间：{{ lastResponseTime }}ms
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import axios from 'axios'
-
-const apiBase = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
 
 export default {
   name: 'App',
@@ -78,6 +76,7 @@ export default {
     const messages = ref([])
     const inputText = ref('')
     const isLoading = ref(false)
+    const lastResponseTime = ref(null)
     
     const quickQuestions = [
       '计算机学院有哪些专业？',
@@ -117,26 +116,34 @@ export default {
       scrollToBottom()
 
       isLoading.value = true
+      const startTime = Date.now()
+
+      const assistantMsgIndex = messages.value.push({
+        role: 'assistant',
+        content: '',
+        sources: []
+      }) - 1
 
       try {
-        const response = await axios.post(`${apiBase}/api/query`, {
+        const response = await axios.post('/api/query', {
           question: userQuestion
         })
 
-        messages.value.push({
+        messages.value[assistantMsgIndex] = {
           role: 'assistant',
           content: response.data.answer,
           sources: response.data.sources
-        })
+        }
       } catch (error) {
         console.error('请求失败:', error)
-        messages.value.push({
+        messages.value[assistantMsgIndex] = {
           role: 'assistant',
-          content: '抱歉，发生了错误，请稍后再试。',
+          content: error.response?.data?.detail || '抱歉，发生了错误，请稍后再试。',
           sources: []
-        })
+        }
       } finally {
         isLoading.value = false
+        lastResponseTime.value = Date.now() - startTime
         scrollToBottom()
       }
     }
@@ -146,6 +153,7 @@ export default {
       messages,
       inputText,
       isLoading,
+      lastResponseTime,
       quickQuestions,
       formatMessage,
       sendQuestion,
@@ -414,5 +422,12 @@ export default {
 .input-wrapper button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.response-time {
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  margin-top: 10px;
 }
 </style>
